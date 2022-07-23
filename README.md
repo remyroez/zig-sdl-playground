@@ -7,6 +7,7 @@
 - [vcpkg](https://github.com/microsoft/vcpkg)
     - sdl2
     - sdl2-image
+    - sdl2-mixer\[mpg123]
 
 ## Build and Run
 

@@ -29,18 +29,22 @@ pub fn build(b: *std.build.Builder) !void {
                     //"webp.dll",
                     "libpng16.dll",
                     "zlib1.dll",
+                    "SDL2_mixer.dll",
+                    "mpg123.dll",
                 });
             }
         }
     }
 
     if (exe.target.isWindows()) {
-        exe.subsystem = .Windows;
-        exe.linkSystemLibrary("Shell32");
+        //exe.subsystem = .Windows;
+        //exe.linkSystemLibrary("Shell32");
     }
 
     exe.linkSystemLibrary("SDL2");
     exe.linkSystemLibrary("SDL2_image");
+    exe.linkSystemLibrary("SDL2_mixer");
+
     exe.linkLibC();
 
     exe.install();
