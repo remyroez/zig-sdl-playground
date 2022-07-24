@@ -4,12 +4,13 @@ const c = @cImport({
     @cInclude("SDL2/SDL.h");
     @cInclude("SDL2/SDL_image.h");
     @cInclude("SDL2/SDL_mixer.h");
+    @cInclude("SDL2/SDL_ttf.h");
 });
 
 pub fn main() anyerror!void {
     if (c.SDL_Init(c.SDL_INIT_VIDEO | c.SDL_INIT_AUDIO) != 0) {
         c.SDL_Log("Unable to initialize SDL: %s", c.SDL_GetError());
-        return error.FailedToInitSDL;
+        return error.SDLInitializationFailed;
     }
     defer c.SDL_Quit();
 
@@ -17,10 +18,10 @@ pub fn main() anyerror!void {
     var renderer: ?*c.SDL_Renderer = null;
     if (c.SDL_CreateWindowAndRenderer(
         640, 480,
-        c.SDL_WINDOW_SHOWN | c.SDL_WINDOW_ALLOW_HIGHDPI,
+        c.SDL_WINDOW_RESIZABLE | c.SDL_WINDOW_ALLOW_HIGHDPI,
         &window, &renderer) != 0) {
         c.SDL_Log("Unable to create window and renderer: %s", c.SDL_GetError());
-        return error.FailedToInitWindowAndRenderer;
+        return error.SDLInitializationFailed;
     }
     defer c.SDL_DestroyWindow(window);
 
@@ -47,9 +48,9 @@ pub fn main() anyerror!void {
     var height: i32 = 0;
     _ = c.SDL_QueryTexture(texture, null, null, &width, &height);
 
-    const rect: c.SDL_Rect = .{ .w = width, .h = height, .x = 0, .y = 0 };
+    var rect: c.SDL_Rect = .{ .w = width, .h = height, .x = 0, .y = 0 };
 
-    _ = c.Mix_Init(c.MIX_INIT_MP3);
+    _ = c.Mix_Init(c.MIX_INIT_OGG);
     defer c.Mix_Quit();
 
     if (c.Mix_OpenAudio(c.MIX_DEFAULT_FREQUENCY, c.MIX_DEFAULT_FORMAT, c.MIX_DEFAULT_CHANNELS, 1024) != 0) {
@@ -58,7 +59,7 @@ pub fn main() anyerror!void {
     }
     defer c.Mix_CloseAudio();
 
-    const audio_file = @embedFile("cursor.mp3");
+    const audio_file = @embedFile("laserSmall_000.ogg");
     const audio_rw = c.SDL_RWFromConstMem(
         @ptrCast(*const anyopaque, &audio_file[0]),
         @intCast(c_int, audio_file.len),
@@ -73,6 +74,46 @@ pub fn main() anyerror!void {
         return error.SDLInitializationFailed;
     };
     defer c.Mix_FreeChunk(audio);
+
+    if (c.TTF_Init() != 0) {
+        c.SDL_Log("Unable to initialize SDL2_ttf: %s", c.TTF_GetError());
+        return error.SDLInitializationFailed;
+    }
+    defer c.TTF_Quit();
+
+    const font_file = @embedFile("Kenney Future.ttf");
+    const font_rw = c.SDL_RWFromConstMem(
+        @ptrCast(*const anyopaque, &font_file[0]),
+        @intCast(c_int, font_file.len),
+    ) orelse {
+        c.SDL_Log("Unable to get RWFromConstMem: %s", c.SDL_GetError());
+        return error.SDLInitializationFailed;
+    };
+    defer std.debug.assert(c.SDL_RWclose(font_rw) == 0);
+
+    const font = c.TTF_OpenFontRW(font_rw, 0, 16) orelse {
+        c.SDL_Log("Unable to load font: %s", c.TTF_GetError());
+        return error.SDLInitializationFailed;
+    };
+    defer c.TTF_CloseFont(font);
+
+    const font_surface = c.TTF_RenderUTF8_Solid(
+        font,
+        "All your codebase are belong to us.",
+        c.SDL_Color{ .r = 0xFF, .g = 0xFF, .b = 0xFF, .a = 0xFF }
+    ) orelse {
+        c.SDL_Log("Unable to render text: %s", c.TTF_GetError());
+        return error.SDLInitializationFailed;
+    };
+    defer c.SDL_FreeSurface(font_surface);
+
+    const font_tex = c.SDL_CreateTextureFromSurface(renderer, font_surface) orelse {
+        c.SDL_Log("Unable to create texture: %s", c.SDL_GetError());
+        return error.SDLInitializationFailed;
+    };
+    defer c.SDL_DestroyTexture(font_tex);
+
+    var font_rect: c.SDL_Rect = .{ .w = font_surface.*.w, .h = font_surface.*.h, .x = 0, .y = 0 };
 
     var before_key: bool = false;
     var current_key: bool = false;
@@ -100,7 +141,19 @@ pub fn main() anyerror!void {
 
         _ = c.SDL_SetRenderDrawColor(renderer, 0xFF, 0x7F, 0x00, 0xFF);
         _ = c.SDL_RenderClear(renderer);
+
+        {
+            var w: c_int = 640;
+            var h: c_int = 480;
+            c.SDL_GetWindowSize(window, &w, &h);
+            rect.x = @divTrunc((w - rect.w), 2);
+            rect.y = @divTrunc((h - rect.h), 2) - @divTrunc(font_rect.h, 2) - 5;
+            font_rect.x = @divTrunc((w - font_rect.w), 2);
+            font_rect.y = @divTrunc((h - font_rect.h), 2) + @divTrunc(rect.h, 2) + 5;
+        }
         _ = c.SDL_RenderCopy(renderer, texture, null, &rect);
+        _ = c.SDL_RenderCopy(renderer, font_tex, null, &font_rect);
+
         _ = c.SDL_RenderPresent(renderer);
 
         c.SDL_Delay(1000 / 60);

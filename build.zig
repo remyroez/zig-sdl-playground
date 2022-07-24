@@ -30,7 +30,14 @@ pub fn build(b: *std.build.Builder) !void {
                     "libpng16.dll",
                     "zlib1.dll",
                     "SDL2_mixer.dll",
-                    "mpg123.dll",
+                    "ogg.dll",
+                    "vorbis.dll",
+                    "vorbisfile.dll",
+                    "SDL2_ttf.dll",
+                    "freetype.dll",
+                    "bz2.dll",
+                    "brotlidec.dll",
+                    "brotlicommon.dll",
                 });
             }
         }
@@ -44,6 +51,7 @@ pub fn build(b: *std.build.Builder) !void {
     exe.linkSystemLibrary("SDL2");
     exe.linkSystemLibrary("SDL2_image");
     exe.linkSystemLibrary("SDL2_mixer");
+    exe.linkSystemLibrary("SDL2_ttf");
 
     exe.linkLibC();
 
