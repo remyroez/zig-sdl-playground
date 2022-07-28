@@ -17,9 +17,12 @@ pub fn main() anyerror!void {
     var window: ?*c.SDL_Window = null;
     var renderer: ?*c.SDL_Renderer = null;
     if (c.SDL_CreateWindowAndRenderer(
-        640, 480,
+        640,
+        480,
         c.SDL_WINDOW_RESIZABLE | c.SDL_WINDOW_ALLOW_HIGHDPI,
-        &window, &renderer) != 0) {
+        &window,
+        &renderer,
+    ) != 0) {
         c.SDL_Log("Unable to create window and renderer: %s", c.SDL_GetError());
         return error.SDLInitializationFailed;
     }
@@ -53,7 +56,12 @@ pub fn main() anyerror!void {
     _ = c.Mix_Init(c.MIX_INIT_OGG);
     defer c.Mix_Quit();
 
-    if (c.Mix_OpenAudio(c.MIX_DEFAULT_FREQUENCY, c.MIX_DEFAULT_FORMAT, c.MIX_DEFAULT_CHANNELS, 1024) != 0) {
+    if (c.Mix_OpenAudio(
+        c.MIX_DEFAULT_FREQUENCY,
+        c.MIX_DEFAULT_FORMAT,
+        c.MIX_DEFAULT_CHANNELS,
+        1024,
+    ) != 0) {
         c.SDL_Log("Unable to open audio: %s", c.Mix_GetError());
         return error.SDLInitializationFailed;
     }
@@ -100,7 +108,12 @@ pub fn main() anyerror!void {
     const font_surface = c.TTF_RenderUTF8_Solid(
         font,
         "All your codebase are belong to us.",
-        c.SDL_Color{ .r = 0xFF, .g = 0xFF, .b = 0xFF, .a = 0xFF }
+        c.SDL_Color{
+            .r = 0xFF,
+            .g = 0xFF,
+            .b = 0xFF,
+            .a = 0xFF,
+        },
     ) orelse {
         c.SDL_Log("Unable to render text: %s", c.TTF_GetError());
         return error.SDLInitializationFailed;
@@ -113,12 +126,17 @@ pub fn main() anyerror!void {
     };
     defer c.SDL_DestroyTexture(font_tex);
 
-    var font_rect: c.SDL_Rect = .{ .w = font_surface.*.w, .h = font_surface.*.h, .x = 0, .y = 0 };
+    var font_rect: c.SDL_Rect = .{
+        .w = font_surface.*.w,
+        .h = font_surface.*.h,
+        .x = 0,
+        .y = 0,
+    };
 
     var before_key: bool = false;
     var current_key: bool = false;
-    
-    mainloop: while(true) {
+
+    mainloop: while (true) {
         current_key = false;
         var event: c.SDL_Event = undefined;
         while (c.SDL_PollEvent(&event) != 0) {
@@ -131,7 +149,7 @@ pub fn main() anyerror!void {
                         current_key = true;
                     }
                 },
-                else => {}
+                else => {},
             }
         }
 
